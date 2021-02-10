@@ -39,6 +39,7 @@ public class Manager : MonoBehaviour
 	public float ExtraMiddlePullK;
 
 	[Header("Animation")]
+	public float StartDelay = 0;
 	public float RandomShiftScale;
 	public float MovementSpeed;
 	public float MovementTimeMultiplier, MovementTimePower;
@@ -180,7 +181,7 @@ public class Manager : MonoBehaviour
 
 		moveIndex = 0;
 		UpdateUI();
-		StartCoroutine(Animate(count, LeftIndex, RightIndex, MiddleIndex));
+		StartCoroutine(StartAnimation());
 	}
 
 	void Update()
@@ -203,6 +204,12 @@ public class Manager : MonoBehaviour
     {
 		// Don't use barrier unless Middle tower is high enough
 		get { return counts[MiddleIndex] * 2 >= count; }
+    }
+
+	IEnumerator StartAnimation()
+    {
+		yield return new WaitForSeconds(StartDelay);
+		StartCoroutine(Animate(count, LeftIndex, RightIndex, MiddleIndex));
     }
 
 	IEnumerator Animate(int n, int from, int to, int temp)
@@ -234,7 +241,8 @@ public class Manager : MonoBehaviour
 			// cols[to].localPosition.x, - simple method without random shifts
 			(counts[to] + 0.5f) * Height);
 
-		if (moveIndex < MovesToSkip)
+		bool skipping = moveIndex < MovesToSkip;
+		if (skipping)
 		{
 			block.localPosition = posTo;
 		}
@@ -323,7 +331,6 @@ public class Manager : MonoBehaviour
 				}
 				yield return null;
 			}
-			yield return new WaitForSeconds(MoveDelay);
 
 			/*
 			for (int i = 1; i <= SplinePoints; i++)
@@ -344,6 +351,11 @@ public class Manager : MonoBehaviour
 		moveIndex++;
 
 		UpdateUI();
+
+		if (!skipping)
+        {
+			yield return new WaitForSeconds(MoveDelay);
+        }
 
 		IEnumerator after = Animate(n - 1, temp, to, from);
 		while (after.MoveNext())
