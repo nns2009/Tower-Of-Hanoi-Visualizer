@@ -12,7 +12,7 @@ public class Manager : MonoBehaviour
 	[Range(2, 20)]
 	public int count;
 	public float MinWidth, MaxWidth;
-	[Range(2, 12)]
+	[Range(2, 20)]
 	public float TotalHeight;
 	[Range(0, 8)]
 	public float TowerSpacing;
