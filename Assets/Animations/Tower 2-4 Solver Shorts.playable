@@ -833,7 +833,7 @@ MonoBehaviour:
   m_Version: 3
   m_AnimClip: {fileID: 0}
   m_Locked: 0
-  m_Muted: 1
+  m_Muted: 0
   m_CustomPlayableFullTypename: 
   m_Curves: {fileID: 0}
   m_Parent: {fileID: 11400000}
@@ -923,7 +923,7 @@ MonoBehaviour:
   m_Name: RecorderClip
   m_EditorClassIdentifier: 
   enabled: 1
-  take: 5
+  take: 58
   captureEveryNthFrame: 1
   fileNameGenerator:
     m_Path:
@@ -931,11 +931,11 @@ MonoBehaviour:
       m_Leaf: Recordings
       m_ForceAssetFolder: 0
       m_AbsolutePath: 
-    m_FileName: towers2-4_<Take>
-  outputFormat: 1
+    m_FileName: towers2-4tiktok_<Take>
+  outputFormat: 0
   videoBitRateMode: 2
   captureAlpha: 0
-  containerFormatSelected: 1
+  containerFormatSelected: 0
   encoderSelected: 0
   encoderPresetSelected: 0
   encoderPresetSelectedName: Apple ProRes 4444 XQ (ap4x)
@@ -950,7 +950,7 @@ MonoBehaviour:
         m_CustomWidth: 1080
         m_CustomHeight: 1920
         imageHeight: 2147483647
-        maxSupportedHeight: 4320
+        maxSupportedHeight: 2160
         m_AspectRatio:
           m_CustomAspectX: 1
           m_CustomAspectY: 1
