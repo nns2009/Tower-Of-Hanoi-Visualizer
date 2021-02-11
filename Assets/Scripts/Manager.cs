@@ -204,6 +204,7 @@ public class Manager : MonoBehaviour
     {
 		// Don't use barrier unless Middle tower is high enough
 		get { return counts[MiddleIndex] * 2 >= count; }
+		// Not used anymore. Delete it?
     }
 
 	IEnumerator StartAnimation()
@@ -321,7 +322,7 @@ public class Manager : MonoBehaviour
 			{
 				rate = Mathf.Min(rate + Time.deltaTime / movementTime, 1);
 				block.localPosition = p(rate);
-				if (UseBarrier && BarrierActivated)
+				if (UseBarrier && temp == MiddleIndex && extraMiddleY > 0) // only activate barrier when performing an extra jump over the middle tower // BarrierActivated
 					block.localPosition = barrierTransform(block.localPosition);
 			
 				if (ShowSpline)
