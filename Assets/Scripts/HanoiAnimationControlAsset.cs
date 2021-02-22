@@ -20,7 +20,9 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	public float RandomShiftScale;
 	public float MovementSpeed;
 	public float MovementTimeMultiplier, MovementTimePower;
-	public float MoveDelay;
+
+	[Range(0, 1)]
+	public float DelayFraction;
 
 	[Header("Barrier")]
 	public bool UseBarrier;
@@ -80,17 +82,25 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	void SetRate(double t)
     {
 		int n = Blocks.childCount;
-		int count = MoveCount(n);
-		MoveI = count * t; //(int)System.Math.Floor(count * t);
-		SetMove(MoveI);
+		int moveCount = MoveCount(n);
+		int delayCount = moveCount - 1;
+
+		double animationMoveLen = moveCount - DelayFraction;
+		
+		MoveI = DelayFraction + animationMoveLen * t; //(int)System.Math.Floor(count * t);
+
+		int baseMoveIndex = (int)System.Math.Floor(MoveI);
+		double inPosMove = MoveI % 1;
+		if (inPosMove < DelayFraction)
+			inPosMove = 0;
+		else
+			inPosMove = (inPosMove - DelayFraction) / (1 - DelayFraction);
+
+		SetMove(n, baseMoveIndex, inPosMove);
 	}
 
-	void SetMove(double moveIndex)
+	void SetMove(int n, int baseMoveIndex, double inMovePos)
     {
-		int n = Blocks.childCount;
-		int baseMoveIndex = (int)System.Math.Floor(moveIndex);
-		double inMovePos = moveIndex % 1;
-
 		// bi - Block Index
 		var (towers, bi, from, to) = BuildTowersAtMove(n, baseMoveIndex);
 
