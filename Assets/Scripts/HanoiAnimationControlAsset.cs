@@ -62,6 +62,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	private Transform[] cols;
 
 	const int LeftIndex = 0, MiddleIndex = 1, RightIndex = 2;
+	const int IndexSum = LeftIndex + MiddleIndex + RightIndex;
 
 	public override Playable CreatePlayable(PlayableGraph graph, GameObject owner)
 	{
@@ -258,11 +259,11 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	}
 
 	// Returns (Tower State, nextBlockToMove, nextMoveFrom, nextMoveTo)
-	(List<int>[], int, int, int) BuildTowersAtMove(int n, int index)
+	(List<int>[], int, int, int) BuildTowersAtMove(int n, int moveIndex)
     {
 		List<int>[] towers = new List<int>[]
 		{
-			Enumerable.Range(0, n).Reverse().ToList(),
+			new List<int>(),
 			new List<int>(),
 			new List<int>(),
 		};
@@ -271,34 +272,59 @@ public class HanoiAnimationControlAsset : PlayableAsset
 		for (int i = 1; i <= n; i++)
 			stepi = 2 * stepi + 1;
 
+		bool completed = moveIndex == stepi;
+
 		// Moving stacks of blocks of sizes from 'n' down to '1'
-		// Each iteration solves top 'stack' blocks of 'stack+1'-block puzzle
+		// Each iteration solves top 'stack'-block puzzle
+		int index = moveIndex;
 		int from = LeftIndex, temp = MiddleIndex, to = RightIndex;
-		for (int stack = n; stack >= 0; stack--)
+		for (int stack = n; stack >= 1; stack--)
         {
-			if (index < stepi)
+			int nextStepi = (stepi - 1) / 2; // Equivalent to just: step / 2
+
+			if (index < nextStepi + 1)
             {
+				towers[from].Add(stack - 1);
 				(temp, to) = (to, temp);
             }
-			else
+            else
             {
-				towers[to].AddRange(towers[from].Pop(stack));
-				index -= stepi;
-
-				if (index == 0)
-                {
-					return (towers, stack, from, temp);
-                }
-
-				towers[temp].Add(towers[from].Pop());
-				index--;
-				// Initially forgot to update (from, to, temp) here
-				// (from, to, temp) = (to, temp, from); - Wrong as well
-				(from, to) = (to, from);
+				towers[to].Add(stack - 1);
+				(temp, from) = (from, temp);
+				index -= nextStepi + 1;
             }
-			stepi = (stepi - 1) / 2; // Equivalent to just: step / 2
+
+			stepi = nextStepi;
         }
 
-		throw new System.Exception("Something wrong at BuildTowersAtMove");
+		if (completed)
+			return (towers, -1, -1, -1);
+
+		int oneIndex =
+			towers[from].Count > 0 && towers[from].Last() == 0
+				? from
+				: to;
+		bool oneToMove = moveIndex % 2 == 0;
+
+		if (oneToMove)
+        {
+			int moveDirection =
+				n % 2 == 0
+					? 1
+					: 2;
+			return (towers, 0, oneIndex, (oneIndex + moveDirection) % tn);
+        }
+		else
+        {
+			int i1 = oneIndex == LeftIndex ? MiddleIndex : LeftIndex;
+			int i2 = IndexSum - oneIndex - i1;
+			int indexToMove =
+				towers[i1].Count == 0 ? i2 :
+				towers[i2].Count == 0 ? i1 :
+				towers[i1].Last() < towers[i2].Last() ? i1
+				: i2;
+
+			return (towers, towers[indexToMove].Last(), indexToMove, i1 + i2 - indexToMove);
+        }
     }
 }
