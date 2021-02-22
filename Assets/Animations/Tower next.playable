@@ -830,38 +830,16 @@ MonoBehaviour:
   DelayFraction: 0.2
   UseBarrier: 1
   BarrierK: 8
-  exBarrier:
-    exposedName: 8d6c99d93cb9aaf44963015b9549da21
-    defaultValue: {fileID: 0}
   CountPrefix: 'Move count: '
   CountSuffix: 
-  exManager:
-    exposedName: 30eb786a325fdbb47bb4d15c44adb2c1
-    defaultValue: {fileID: 0}
-  Left:
-    exposedName: 5a4527a8a72c3ff4a8ccb2e01e46ec3e
-    defaultValue: {fileID: 0}
-  Middle:
-    exposedName: a3633704f8d17c742b3845b67ab243b0
-    defaultValue: {fileID: 0}
-  Right:
-    exposedName: e7e2bc0170c122e4492337af0d676d38
-    defaultValue: {fileID: 0}
-  exBlocks:
-    exposedName: 78a31046a95a22044b2f365ad67159a5
-    defaultValue: {fileID: 0}
-  exMoveCounterLabel:
-    exposedName: 1fd72a3cc1bd1e1499046369e36eff26
+  manager:
+    exposedName: b310434a4f65dce4e913bef4424f682d
     defaultValue: {fileID: 0}
   MovesToSkip: 0
-  MoveI: 203.73540229743102
+  MoveI: 29.747849586061786
   ShowSpline: 1
   ShowBarrier: 1
   BarrierDebugWidth: 9
-  Barrier: {fileID: 0}
-  Blocks: {fileID: 0}
-  MoveCounterLabel: {fileID: 0}
-  manager: {fileID: 0}
 --- !u!114 &4940398349882151031
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -40,7 +40,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4257399110114538747}
   m_Layer: 0
-  m_Name: Soft Barrier
+  m_Name: Barrier
   m_TagString: Untagged
   m_Icon: {fileID: 5721338939258241955, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
@@ -161,9 +161,6 @@ MonoBehaviour:
   Left: {fileID: 4257399109860270660}
   Middle: {fileID: 4257399110767477215}
   Right: {fileID: 4257399111632085013}
-  ShowSpline: 1
-  ShowBarrier: 1
-  BarrierDebugWidth: 10
   CreateExtraBottomBlocks: 0
   Height: 1.5
   dWidth: 0.5

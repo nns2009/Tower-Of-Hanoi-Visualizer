@@ -16,7 +16,6 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	public float ExtraMiddlePullK;
 
 	[Header("Animation")]
-	//public float StartDelay = 0;
 	public int Seed = 0;
 	public float RandomShiftScale;
 	public float MovementSpeed;
@@ -28,22 +27,17 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	[Header("Barrier")]
 	public bool UseBarrier;
 	public float BarrierK;
-	public ExposedReference<Transform> exBarrier;
 
 	[Header("UI")]
 	public string CountPrefix;
 	public string CountSuffix;
 
 	[Header("References")]
-	//public ExposedReference<Camera> camera;
-	public ExposedReference<Manager2> exManager;
-	public ExposedReference<Transform> Left, Middle, Right;
-	public ExposedReference<Transform> exBlocks;
-	public ExposedReference<TextMeshPro> exMoveCounterLabel;
-
+	public ExposedReference<Manager2> manager;
 
 	[Header("Debug")]
 	public int MovesToSkip = 0;
+	[ReadOnly]
 	public double MoveI = 0;
 
 	public bool ShowSpline = false;
@@ -51,14 +45,12 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	public float BarrierDebugWidth = 1;
 
 	[Header("Computed")]
-	[ReadOnly]
-	public Transform Barrier;
-	[ReadOnly]
-	public Transform Blocks;
-	[ReadOnly]
-	public TextMeshPro MoveCounterLabel;
-	[ReadOnly]
-	public Manager2 manager;
+	private Manager2 trueManager;
+	private Transform Barrier;
+	private Transform Blocks;
+	private TextMeshPro MoveCounterLabel;
+	private Transform Anchors;
+	private Transform Left, Middle, Right;
 	private Transform[] cols;
 
 	const int LeftIndex = 0, MiddleIndex = 1, RightIndex = 2;
@@ -74,12 +66,17 @@ public class HanoiAnimationControlAsset : PlayableAsset
 		b.SetRate = SetRate;
 
 		var resolver = graph.GetResolver();
-		Barrier = exBarrier.Resolve(resolver);
-		Blocks = exBlocks.Resolve(resolver);
-		MoveCounterLabel = exMoveCounterLabel.Resolve(resolver);
-		manager = exManager.Resolve(resolver);
-		cols = new Transform[] { Left.Resolve(resolver), Middle.Resolve(resolver), Right.Resolve(resolver) };
-		//SetMove(MoveI);
+		trueManager = manager.Resolve(resolver);
+
+		Barrier = trueManager.transform.Find("Barrier");
+		Blocks = trueManager.transform.Find("Blocks");
+		MoveCounterLabel = trueManager.transform.Find("Move Counter").GetComponent<TextMeshPro>();
+
+		Anchors = trueManager.transform.Find("Anchors");
+		Left = Anchors.Find("Left");
+		Middle = Anchors.Find("Middle");
+		Right = Anchors.Find("Right");
+		cols = new Transform[] { Left, Middle, Right };
 
 		Debug.Log("Asset.CreatePlayable After");
 
@@ -89,7 +86,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	const int tn = 3;
 
 	List<int> p2 = new List<int> { 1 };
-	List<int> l2 = new List<int>();
+	//List<int> l2 = new List<int>();
 
 	void extend2s(int n)
     {
@@ -126,7 +123,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
 		var (towers, bi, from, to) = BuildTowersAtMove(n, baseMoveIndex);
 		int temp = LeftIndex + MiddleIndex + RightIndex - from - to;
 
-		float Height = manager.Height;
+		float Height = trueManager.Height;
 
 		int hash(int blockIndex, int movesMade)
         {
@@ -268,9 +265,10 @@ public class HanoiAnimationControlAsset : PlayableAsset
 			new List<int>(),
 		};
 
-		int stepi = 0;
-		for (int i = 1; i <= n; i++)
-			stepi = 2 * stepi + 1;
+		//int stepi = 0;
+		//for (int i = 1; i <= n; i++)
+		//	stepi = 2 * stepi + 1;
+		int stepi = p2[n] - 1;
 
 		bool completed = moveIndex == stepi;
 
