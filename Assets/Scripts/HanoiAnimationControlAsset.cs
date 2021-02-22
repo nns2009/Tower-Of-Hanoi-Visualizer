@@ -17,6 +17,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
 
 	[Header("Animation")]
 	//public float StartDelay = 0;
+	public int Seed = 0;
 	public float RandomShiftScale;
 	public float MovementSpeed;
 	public float MovementTimeMultiplier, MovementTimePower;
@@ -86,9 +87,19 @@ public class HanoiAnimationControlAsset : PlayableAsset
 
 	const int tn = 3;
 
+	List<int> p2 = new List<int> { 1 };
+	List<int> l2 = new List<int>();
+
+	void extend2s(int n)
+    {
+		while (p2.Count <= n)
+			p2.Add(p2.Last() * 2);
+    }
+
 	void SetRate(double t)
     {
 		int n = Blocks.childCount;
+		extend2s(n);
 		int moveCount = MoveCount(n);
 		int delayCount = moveCount - 1;
 
@@ -108,18 +119,58 @@ public class HanoiAnimationControlAsset : PlayableAsset
 
 	void SetMove(int n, int baseMoveIndex, double inMovePos)
     {
+		var previousRandomState = Random.state;
+
 		// bi - Block Index
 		var (towers, bi, from, to) = BuildTowersAtMove(n, baseMoveIndex);
 		int temp = LeftIndex + MiddleIndex + RightIndex - from - to;
 
 		float Height = manager.Height;
+
+		int hash(int blockIndex, int movesMade)
+        {
+			return Seed
+				+ blockIndex * 1000003 // Primes (at least: co-primes) - to minimize intersections
+				+ movesMade * 1009;
+        }
+
+		// Function to get block position
+		// Mostly necessary because of random shifts
+		Vector3 getBlockPosition(Transform block, int blockIndex, int towerX, int towerY, int moveIndex)
+        {
+			// moveIndex parameter - is total number of moves made by all blocks = position identificator
+			// Next three lines are characteristics of the specific block
+			int movesEvery = p2[blockIndex + 1];
+			int movesMade = (moveIndex + p2[blockIndex]) / movesEvery;
+			int movesTotal = p2[n - 1 - blockIndex];
+
+			float blockX;
+			if (towerY == 0 || movesMade == 0 || movesMade == movesTotal)
+            {
+				blockX = cols[towerX].localPosition.x;
+            }
+            else
+            {
+				var under = Blocks.Find(towers[towerX][towerY - 1] + "");
+				var underBox = under.GetComponent<BoxCollider2D>();
+				var blockBox = block.GetComponent<BoxCollider2D>();
+				float dw = underBox.size.x - blockBox.size.x;
+
+				Random.InitState(hash(blockIndex, movesMade));
+				blockX = under.localPosition.x
+					+ RandomShiftScale * Random.Range(-1f, 1f) * dw / 2;
+            }
+
+			return new Vector3(blockX, (towerY + 0.5f) * Height);
+        }
+
 		for (int ti = 0; ti < tn; ti++)
         {
 			for (int j = 0; j < towers[ti].Count; j++)
             {
 				int blockIndex = towers[ti][j];
 				var block = Blocks.Find(blockIndex + "");
-				block.localPosition = cols[ti].localPosition + Vector3.up * (j + 0.5f) * Height;
+				block.localPosition = getBlockPosition(block, blockIndex, ti, j, baseMoveIndex);
             }
         }
 
@@ -130,7 +181,9 @@ public class HanoiAnimationControlAsset : PlayableAsset
 			BoxCollider2D blockBox = block.GetComponent<BoxCollider2D>();
 
 			var posFrom = block.localPosition;
-			var posTo = new Vector3(cols[to].localPosition.x, (towers[to].Count + 0.5f) * Height);
+			var posTo = getBlockPosition(block, bi, to, towers[to].Count, baseMoveIndex + 1);
+			// var posTo = new Vector3(cols[to].localPosition.x, (towers[to].Count + 0.5f) * Height);
+
 			float maxY = Mathf.Max(posFrom.y, posTo.y);
 			float extraMiddleY = 0;
 			if (temp == MiddleIndex)
@@ -187,6 +240,8 @@ public class HanoiAnimationControlAsset : PlayableAsset
 			block.localPosition = p((float)inMovePos);
 			UpdateUI(baseMoveIndex);
         }
+
+		Random.state = previousRandomState;
     }
 
 	void UpdateUI(int moveIndex)

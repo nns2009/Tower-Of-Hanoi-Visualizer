@@ -79,7 +79,7 @@ MonoBehaviour:
   m_Version: 3
   m_AnimClip: {fileID: 0}
   m_Locked: 0
-  m_Muted: 0
+  m_Muted: 1
   m_CustomPlayableFullTypename: 
   m_Curves: {fileID: 0}
   m_Parent: {fileID: 11400000}
@@ -822,7 +822,8 @@ MonoBehaviour:
   BaseLiftLength: 1.8
   UpperBlockPullK: 1
   ExtraMiddlePullK: 1.75
-  RandomShiftScale: 0
+  Seed: 0
+  RandomShiftScale: 1
   MovementSpeed: 24
   MovementTimeMultiplier: 0.35
   MovementTimePower: 0.58
@@ -853,7 +854,7 @@ MonoBehaviour:
     exposedName: 1fd72a3cc1bd1e1499046369e36eff26
     defaultValue: {fileID: 0}
   MovesToSkip: 0
-  MoveI: 213.33046611297294
+  MoveI: 203.73540229743102
   ShowSpline: 1
   ShowBarrier: 1
   BarrierDebugWidth: 9
