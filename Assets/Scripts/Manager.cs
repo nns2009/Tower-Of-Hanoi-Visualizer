@@ -267,7 +267,7 @@ public class Manager : MonoBehaviour
 				posTo, t
 			);
 			*/
-			System.Func<float, Vector3> p = t => Lerp3(
+			System.Func<float, Vector3> p = t => Vec.Lerp3(
 				cur,
 				cur + Vector3.up * (BaseLiftLength + TopPullK * (topVisibleY - cur.y) + UpperBlockPullK * (maxY - cur.y) + ExtraMiddlePullK * extraMiddleY),
 				posTo + Vector3.up * (BaseLiftLength + TopPullK * (topVisibleY - posTo.y) + UpperBlockPullK * (maxY - posTo.y) + ExtraMiddlePullK * extraMiddleY),
@@ -364,21 +364,6 @@ public class Manager : MonoBehaviour
 
 		//foreach (var o in Animate(n - 1, from, temp, to))
 		//    yield return o;
-	}
-
-	Vector3 Lerp2(Vector3 a, Vector3 b, Vector3 c, float t)
-	{
-		return Vector3.Lerp(
-			Vector3.Lerp(a, b, t),
-			Vector3.Lerp(b, c, t),
-			t);
-	}
-	Vector3 Lerp3(Vector3 a, Vector3 b, Vector3 c, Vector3 d, float t)
-	{
-		return Vector3.Lerp(
-			Lerp2(a, b, c, t),
-			Lerp2(b, c, d, t),
-			t);
 	}
 
 	void DrawDebugCurve(Vector3[] curve, Color color)
