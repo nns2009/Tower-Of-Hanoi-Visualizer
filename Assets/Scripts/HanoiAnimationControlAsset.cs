@@ -11,12 +11,12 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	public int SplinePoints;
 	public float BaseLiftLength;
 	[Range(0, 1)]
-	public float TopPullK, UpperBlockPullK;
+	public float UpperBlockPullK;
 	[Range(0, 3)]
 	public float ExtraMiddlePullK;
 
 	[Header("Animation")]
-	public float StartDelay = 0;
+	//public float StartDelay = 0;
 	public float RandomShiftScale;
 	public float MovementSpeed;
 	public float MovementTimeMultiplier, MovementTimePower;
@@ -32,43 +32,43 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	public string CountSuffix;
 
 	[Header("References")]
-	public ExposedReference<Camera> camera;
+	//public ExposedReference<Camera> camera;
+	public ExposedReference<Manager2> exManager;
 	public ExposedReference<Transform> Left, Middle, Right;
 	public ExposedReference<Transform> exBlocks;
-	public ExposedReference<TextMeshPro> MoveCounterLabel;
-	public ExposedReference<Manager2> exManager;
+	public ExposedReference<TextMeshPro> exMoveCounterLabel;
 
 	[ReadOnly]
 	public Transform Blocks;
+	[ReadOnly]
+	public TextMeshPro MoveCounterLabel;
 	[ReadOnly]
 	public Manager2 manager;
 
 	[Header("Debug")]
 	public int MovesToSkip = 0;
-	public int MoveI = 0;
+	public double MoveI = 0;
 
 	[Header("Computed")]
 	private Transform[] cols;
 
+	const int LeftIndex = 0, MiddleIndex = 1, RightIndex = 2;
+
 	public override Playable CreatePlayable(PlayableGraph graph, GameObject owner)
 	{
-		var resolver = graph.GetResolver();
-
 		Debug.Log("Asset.CreatePlayable Before");
 
 		var playable = ScriptPlayable<HanoiAnimationControlBehaviour>.Create(graph);
-
 		var b = playable.GetBehaviour();
 		b.FrameRate = 60;
 		b.SetRate = SetRate;
-		//lightControlBehaviour.light = light.Resolve(graph.GetResolver());
-		//lightControlBehaviour.color = color;
-		//lightControlBehaviour.intensity = intensity;
 
+		var resolver = graph.GetResolver();
 		Blocks = exBlocks.Resolve(resolver);
+		MoveCounterLabel = exMoveCounterLabel.Resolve(resolver);
 		manager = exManager.Resolve(resolver);
 		cols = new Transform[] { Left.Resolve(resolver), Middle.Resolve(resolver), Right.Resolve(resolver) };
-		SetMove(MoveI);
+		//SetMove(MoveI);
 
 		Debug.Log("Asset.CreatePlayable After");
 
@@ -81,24 +81,59 @@ public class HanoiAnimationControlAsset : PlayableAsset
     {
 		int n = Blocks.childCount;
 		int count = MoveCount(n);
-		MoveI = (int)System.Math.Floor(count * t);
+		MoveI = count * t; //(int)System.Math.Floor(count * t);
 		SetMove(MoveI);
 	}
 
-	void SetMove(int index)
+	void SetMove(double moveIndex)
     {
 		int n = Blocks.childCount;
-		var towers = BuildTowersAtMove(n, index);
+		int baseMoveIndex = (int)System.Math.Floor(moveIndex);
+		double inMovePos = moveIndex % 1;
 
+		// bi - Block Index
+		var (towers, bi, from, to) = BuildTowersAtMove(n, baseMoveIndex);
+
+		float Height = manager.Height;
 		for (int ti = 0; ti < tn; ti++)
         {
 			for (int j = 0; j < towers[ti].Count; j++)
             {
 				int blockIndex = towers[ti][j];
 				var block = Blocks.Find(blockIndex + "");
-				block.localPosition = cols[ti].localPosition + Vector3.up * (j + 0.5f) * manager.Height;
+				block.localPosition = cols[ti].localPosition + Vector3.up * (j + 0.5f) * Height;
             }
         }
+
+        if (baseMoveIndex < MoveCount(n)) {
+			// Animation of the move
+
+			Transform block = Blocks.Find(bi + "");
+			BoxCollider2D blockBox = block.GetComponent<BoxCollider2D>();
+
+			var posFrom = block.localPosition;
+			var posTo = new Vector3(cols[to].localPosition.x, (towers[to].Count + 0.5f) * Height);
+			float maxY = Mathf.Max(posFrom.y, posTo.y);
+			float extraMiddleY = 0;
+			if (from != MiddleIndex && to != MiddleIndex)
+				extraMiddleY = Mathf.Max(0, (towers[MiddleIndex].Count + 0.5f) * Height - maxY);
+
+			System.Func<float, Vector3> p = t => Vec.Lerp3(
+				posFrom,
+				posFrom + Vector3.up * (BaseLiftLength + UpperBlockPullK * (maxY - posFrom.y) + ExtraMiddlePullK * extraMiddleY),
+				posTo + Vector3.up * (BaseLiftLength + UpperBlockPullK * (maxY - posTo.y) + ExtraMiddlePullK * extraMiddleY),
+				posTo,
+				t
+			);
+
+			block.localPosition = p((float)inMovePos);
+			UpdateUI(baseMoveIndex);
+        }
+    }
+
+	void UpdateUI(int moveIndex)
+    {
+		MoveCounterLabel.text = CountPrefix + moveIndex + CountSuffix;
     }
 
 	int MoveCount(int n)
@@ -109,7 +144,8 @@ public class HanoiAnimationControlAsset : PlayableAsset
 		return count;
 	}
 
-	List<int>[] BuildTowersAtMove(int n, int index)
+	// Returns (Tower State, nextBlockToMove, nextMoveFrom, nextMoveTo)
+	(List<int>[], int, int, int) BuildTowersAtMove(int n, int index)
     {
 		List<int>[] towers = new List<int>[]
 		{
@@ -124,8 +160,8 @@ public class HanoiAnimationControlAsset : PlayableAsset
 
 		// Moving stacks of blocks of sizes from 'n' down to '1'
 		// Each iteration solves top 'stack' blocks of 'stack+1'-block puzzle
-		int from = 0, temp = 1, to = 2;
-		for (int stack = n; stack >= 1; stack--)
+		int from = LeftIndex, temp = MiddleIndex, to = RightIndex;
+		for (int stack = n; stack >= 0; stack--)
         {
 			if (index < stepi)
             {
@@ -135,19 +171,21 @@ public class HanoiAnimationControlAsset : PlayableAsset
             {
 				towers[to].AddRange(towers[from].Pop(stack));
 				index -= stepi;
-				if (index > 0)
+
+				if (index == 0)
                 {
-					towers[temp].Add(towers[from].Pop());
-					index--;
+					return (towers, stack, from, temp);
                 }
+
+				towers[temp].Add(towers[from].Pop());
+				index--;
 				// Initially forgot to update (from, to, temp) here
 				// (from, to, temp) = (to, temp, from); - Wrong as well
 				(from, to) = (to, from);
             }
-			int nextStepi = (stepi - 1) / 2; // Equivalent to just: step / 2
-			stepi = nextStepi;
+			stepi = (stepi - 1) / 2; // Equivalent to just: step / 2
         }
 
-		return towers;
+		throw new System.Exception("Something wrong at BuildTowersAtMove");
     }
 }

@@ -61,7 +61,7 @@ public class HanoiAnimationControlBehaviour : PlayableBehaviour
 
     public override void PrepareFrame(Playable playable, FrameData info)
     {
-		Debug.Log("Prepare Frame");
+		//Debug.Log("Prepare Frame");
         //base.PrepareFrame(playable, info);
     }
     public override void OnPlayableCreate(Playable playable)
