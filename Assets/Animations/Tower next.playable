@@ -818,7 +818,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ebd85578ae9275b4caf413c2a3b6b844, type: 3}
   m_Name: HanoiAnimationControlAsset
   m_EditorClassIdentifier: 
-  SplinePoints: 100
+  InterpolationSegments: 24
   BaseLiftLength: 1.8
   UpperBlockPullK: 1
   ExtraMiddlePullK: 1.75
@@ -829,8 +829,8 @@ MonoBehaviour:
   DelayFraction: 0.2
   UseBarrier: 1
   BarrierK: 8
-  Barrier:
-    exposedName: b3cee1a7f1b6ee14686ac69f4bd2a760
+  exBarrier:
+    exposedName: 8d6c99d93cb9aaf44963015b9549da21
     defaultValue: {fileID: 0}
   CountPrefix: 'Move count: '
   CountSuffix: 
@@ -852,11 +852,15 @@ MonoBehaviour:
   exMoveCounterLabel:
     exposedName: 1fd72a3cc1bd1e1499046369e36eff26
     defaultValue: {fileID: 0}
+  MovesToSkip: 0
+  MoveI: 213.33046611297294
+  ShowSpline: 1
+  ShowBarrier: 1
+  BarrierDebugWidth: 9
+  Barrier: {fileID: 0}
   Blocks: {fileID: 0}
   MoveCounterLabel: {fileID: 0}
   manager: {fileID: 0}
-  MovesToSkip: 0
-  MoveI: 0.20000000298023224
 --- !u!114 &4940398349882151031
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -882,7 +886,7 @@ MonoBehaviour:
     m_Start: 0
     m_ClipIn: 0
     m_Asset: {fileID: 4453235030179035856}
-    m_Duration: 27.166666666666668
+    m_Duration: 148.05
     m_TimeScale: 1
     m_ParentTrack: {fileID: 4940398349882151031}
     m_EaseInDuration: 0

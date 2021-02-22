@@ -35,9 +35,7 @@ public class Manager2 : MonoBehaviour
 	public Transform Blocks;
 	public Transform Left, Middle, Right;
 
-	public bool ShowSpline = false;
-	public bool ShowBarrier = false;
-	public float BarrierDebugWidth = 1;
+	[Header("Debug")]
 	public bool CreateExtraBottomBlocks = false;
 
 	[Header("Computed")]

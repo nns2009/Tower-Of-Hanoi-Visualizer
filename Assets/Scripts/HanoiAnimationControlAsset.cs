@@ -8,7 +8,7 @@ using UnityEngine.Playables;
 public class HanoiAnimationControlAsset : PlayableAsset
 {
 	[Header("Path")]
-	public int SplinePoints;
+	public int InterpolationSegments;
 	public float BaseLiftLength;
 	[Range(0, 1)]
 	public float UpperBlockPullK;
@@ -27,7 +27,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	[Header("Barrier")]
 	public bool UseBarrier;
 	public float BarrierK;
-	public ExposedReference<Transform> Barrier;
+	public ExposedReference<Transform> exBarrier;
 
 	[Header("UI")]
 	public string CountPrefix;
@@ -40,18 +40,24 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	public ExposedReference<Transform> exBlocks;
 	public ExposedReference<TextMeshPro> exMoveCounterLabel;
 
+
+	[Header("Debug")]
+	public int MovesToSkip = 0;
+	public double MoveI = 0;
+
+	public bool ShowSpline = false;
+	public bool ShowBarrier = false;
+	public float BarrierDebugWidth = 1;
+
+	[Header("Computed")]
+	[ReadOnly]
+	public Transform Barrier;
 	[ReadOnly]
 	public Transform Blocks;
 	[ReadOnly]
 	public TextMeshPro MoveCounterLabel;
 	[ReadOnly]
 	public Manager2 manager;
-
-	[Header("Debug")]
-	public int MovesToSkip = 0;
-	public double MoveI = 0;
-
-	[Header("Computed")]
 	private Transform[] cols;
 
 	const int LeftIndex = 0, MiddleIndex = 1, RightIndex = 2;
@@ -66,6 +72,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
 		b.SetRate = SetRate;
 
 		var resolver = graph.GetResolver();
+		Barrier = exBarrier.Resolve(resolver);
 		Blocks = exBlocks.Resolve(resolver);
 		MoveCounterLabel = exMoveCounterLabel.Resolve(resolver);
 		manager = exManager.Resolve(resolver);
@@ -103,6 +110,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
     {
 		// bi - Block Index
 		var (towers, bi, from, to) = BuildTowersAtMove(n, baseMoveIndex);
+		int temp = LeftIndex + MiddleIndex + RightIndex - from - to;
 
 		float Height = manager.Height;
 		for (int ti = 0; ti < tn; ti++)
@@ -125,16 +133,56 @@ public class HanoiAnimationControlAsset : PlayableAsset
 			var posTo = new Vector3(cols[to].localPosition.x, (towers[to].Count + 0.5f) * Height);
 			float maxY = Mathf.Max(posFrom.y, posTo.y);
 			float extraMiddleY = 0;
-			if (from != MiddleIndex && to != MiddleIndex)
+			if (temp == MiddleIndex)
 				extraMiddleY = Mathf.Max(0, (towers[MiddleIndex].Count + 0.5f) * Height - maxY);
 
-			System.Func<float, Vector3> p = t => Vec.Lerp3(
+			System.Func<float, Vector3> baseCurve = t => Vec.Lerp3(
 				posFrom,
 				posFrom + Vector3.up * (BaseLiftLength + UpperBlockPullK * (maxY - posFrom.y) + ExtraMiddlePullK * extraMiddleY),
 				posTo + Vector3.up * (BaseLiftLength + UpperBlockPullK * (maxY - posTo.y) + ExtraMiddlePullK * extraMiddleY),
 				posTo,
 				t
 			);
+
+			System.Func<float, Vector3> p;
+
+			bool barrierActivated = temp == MiddleIndex && extraMiddleY > 0;
+			if (UseBarrier && barrierActivated)
+            {
+				System.Func<float, float> barrierF = y =>
+					y >= 0
+						? y
+						: (Mathf.Exp(y / BarrierK) - 1) * BarrierK;
+				System.Func<Vector3, Vector3> barrierTransform = vec =>
+					new Vector3(
+						vec.x,
+						Barrier.localPosition.y - barrierF(Barrier.localPosition.y - vec.y)
+					);
+
+				//p = t => barrierTransform(p(t)); Doesn't capture 'p', executes recursively - not what we want
+				p = t => barrierTransform(baseCurve(t));
+
+				if (ShowSpline)
+					Vec.DrawDebugCurve(baseCurve, InterpolationSegments, Color.cyan);
+            }
+            else
+            {
+				p = baseCurve;
+            }
+
+			if (ShowSpline)
+				Vec.DrawDebugCurve(p, InterpolationSegments, Color.red);
+
+			if (ShowBarrier)
+			{
+				Debug.DrawLine(
+					Barrier.position - Vector3.right * BarrierDebugWidth,
+					Barrier.position + Vector3.right * BarrierDebugWidth,
+					!UseBarrier ? Color.red :
+					barrierActivated ? Color.magenta :
+					Color.green);
+			}
+
 
 			block.localPosition = p((float)inMovePos);
 			UpdateUI(baseMoveIndex);
