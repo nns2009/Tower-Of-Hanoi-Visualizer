@@ -824,10 +824,9 @@ MonoBehaviour:
   ExtraMiddlePullK: 1.75
   Seed: 0
   RandomShiftScale: 1
-  MovementSpeed: 24
-  MovementTimeMultiplier: 0.35
-  MovementTimePower: 0.58
-  DelayFraction: 0.2
+  LengthPower: 0.58
+  DelayFraction: 0.16
+  FinalMoveTolerance: 0.0001
   UseBarrier: 1
   BarrierK: 8
   CountPrefix: 'Move count: '
@@ -835,11 +834,13 @@ MonoBehaviour:
   manager:
     exposedName: b310434a4f65dce4e913bef4424f682d
     defaultValue: {fileID: 0}
-  MovesToSkip: 0
-  MoveI: 29.747849586061786
   ShowSpline: 1
   ShowBarrier: 1
   BarrierDebugWidth: 9
+  Rate: 0.7792163927043458
+  BaseMove: 198
+  InMove: 0.9025600079314468
+  CurveTimeRatio: 3.2922041
 --- !u!114 &4940398349882151031
 MonoBehaviour:
   m_ObjectHideFlags: 1

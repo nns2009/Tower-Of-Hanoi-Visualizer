@@ -4,10 +4,13 @@ using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Playables;
+using Curve = System.Func<float, UnityEngine.Vector3>;
+
 
 public class HanoiAnimationControlAsset : PlayableAsset
 {
 	[Header("Path")]
+	[Range(3, 50)]
 	public int InterpolationSegments;
 	public float BaseLiftLength;
 	[Range(0, 1)]
@@ -18,11 +21,13 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	[Header("Animation")]
 	public int Seed = 0;
 	public float RandomShiftScale;
-	public float MovementSpeed;
-	public float MovementTimeMultiplier, MovementTimePower;
+	[Range(0.2f, 2f)]
+	public float LengthPower; // Equivalent to TimePower
 
 	[Range(0, 1)]
 	public float DelayFraction;
+
+	public float FinalMoveTolerance;
 
 	[Header("Barrier")]
 	public bool UseBarrier;
@@ -36,13 +41,23 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	public ExposedReference<Manager2> manager;
 
 	[Header("Debug")]
-	public int MovesToSkip = 0;
-	[ReadOnly]
-	public double MoveI = 0;
-
 	public bool ShowSpline = false;
 	public bool ShowBarrier = false;
 	public float BarrierDebugWidth = 1;
+
+	[Header("Debug Output")]
+	[ReadOnly]
+	public double Rate;
+	[ReadOnly]
+	public int BaseMove;
+	[ReadOnly]
+	public double InMove;
+	[ReadOnly]
+	public float CurveTimeRatio;
+
+	[ReadOnly]
+	private double MoveI = 0;
+
 
 	[Header("Computed")]
 	private Manager2 trueManager;
@@ -58,12 +73,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
 
 	public override Playable CreatePlayable(PlayableGraph graph, GameObject owner)
 	{
-		Debug.Log("Asset.CreatePlayable Before");
-
 		var playable = ScriptPlayable<HanoiAnimationControlBehaviour>.Create(graph);
-		var b = playable.GetBehaviour();
-		b.FrameRate = 60;
-		b.SetRate = SetRate;
 
 		var resolver = graph.GetResolver();
 		trueManager = manager.Resolve(resolver);
@@ -78,7 +88,90 @@ public class HanoiAnimationControlAsset : PlayableAsset
 		Right = Anchors.Find("Right");
 		cols = new Transform[] { Left, Middle, Right };
 
-		Debug.Log("Asset.CreatePlayable After");
+		int n = Blocks.childCount;
+		extend2s(n);
+		int moveCount = MoveCount(n);
+		int delayCount = moveCount - 1;
+
+		float[] times = new float[moveCount];
+		for (int i = 0; i < moveCount; i++)
+        {
+			// Get the curve from move=i to move=i+1
+			var (_, p) = PlaceTowersAndGetCurve(n, i, false);
+
+			// Get it's length
+			float length = Vec.CurveLength(p, InterpolationSegments); // Test length: Mathf.Log(i+2, 2);
+
+			// Apply LengthPower to length to get appropriate ratio
+			times[i] = Mathf.Pow(length, LengthPower);
+        }
+		float movementFraction = 1 - DelayFraction;
+		float timesSum = times.Sum();
+		float timesScaleK = movementFraction / timesSum;
+		times = times.Select(time => time * timesScaleK).ToArray();
+		Debug.Log("Recreating with timesSum: " + timesSum);
+
+		float[] timesSums = new float[moveCount + 1];
+		timesSums[0] = 0;
+		for (int i = 0; i < moveCount; i++)
+			timesSums[i + 1] = timesSums[i] + times[i];
+
+		float oneDelayFraction = DelayFraction / delayCount;
+		void setRate(double t)
+        {
+			Rate = t; // Debug output
+
+			int l = 0;
+			int r = moveCount + 1;
+			while (l + 1 < r)
+            {
+				int m = (l + r) / 2;
+				float progress = timesSums[m] // time spent in movement
+					+ (m - 1) * oneDelayFraction; // time spent in delays,
+					//'m' is never =0 during binary search
+
+				if (progress <= t)
+					l = m;
+				else
+					r = m;
+            }
+
+			int baseMoveIndex;
+			double inMovePos;
+			if (l == 0)
+            {
+				baseMoveIndex = 0;
+				inMovePos = t / times[0];
+            }
+            else
+            {
+				baseMoveIndex = l;
+				double rem = t - (timesSums[baseMoveIndex] + (baseMoveIndex - 1) * oneDelayFraction);
+				if (rem < oneDelayFraction)
+					inMovePos = 0;
+				else
+					inMovePos = (rem - oneDelayFraction) / times[baseMoveIndex];
+
+				// The following condition is necessary because of precision errors
+				// The error is small so the animation looks fine anyway,
+				// but without this condition, the final Move Count is one less than it should be
+				if (baseMoveIndex + 1 == moveCount && inMovePos + FinalMoveTolerance >= 1)
+                {
+					baseMoveIndex = moveCount;
+					inMovePos = 0;
+                }
+            }
+			CurveTimeRatio = // Debug output
+				baseMoveIndex < moveCount
+					? times[baseMoveIndex] / timesScaleK
+					: -1;
+
+			SetMove(n, baseMoveIndex, inMovePos);
+        }
+
+		var b = playable.GetBehaviour();
+		b.FrameRate = 60;
+		b.SetRate = setRate;
 
 		return playable;
 	}
@@ -96,10 +189,10 @@ public class HanoiAnimationControlAsset : PlayableAsset
 
 	void SetRate(double t)
     {
+		Debug.LogWarning("Old setRate!");
 		int n = Blocks.childCount;
 		extend2s(n);
 		int moveCount = MoveCount(n);
-		int delayCount = moveCount - 1;
 
 		double animationMoveLen = moveCount - DelayFraction;
 		
@@ -117,6 +210,23 @@ public class HanoiAnimationControlAsset : PlayableAsset
 
 	void SetMove(int n, int baseMoveIndex, double inMovePos)
     {
+		BaseMove = baseMoveIndex; // Debug output
+		InMove = inMovePos; // Debug output
+
+		UpdateUI(baseMoveIndex);
+
+		var (block, p) = PlaceTowersAndGetCurve(n, baseMoveIndex, true);
+
+		if (baseMoveIndex < MoveCount(n))
+		{
+			// Animation of the move
+			//Transform block = Blocks.Find(bi + "");
+			block.localPosition = p((float)inMovePos);
+		}
+	}
+
+	(Transform, Curve) PlaceTowersAndGetCurve(int n, int baseMoveIndex, bool drawDebug)
+    {
 		var previousRandomState = Random.state;
 
 		// bi - Block Index
@@ -124,13 +234,6 @@ public class HanoiAnimationControlAsset : PlayableAsset
 		int temp = LeftIndex + MiddleIndex + RightIndex - from - to;
 
 		float Height = trueManager.Height;
-
-		int hash(int blockIndex, int movesMade)
-        {
-			return Seed
-				+ blockIndex * 1000003 // Primes (at least: co-primes) - to minimize intersections
-				+ movesMade * 1009;
-        }
 
 		// Function to get block position
 		// Mostly necessary because of random shifts
@@ -172,9 +275,14 @@ public class HanoiAnimationControlAsset : PlayableAsset
             }
         }
 
-        if (baseMoveIndex < MoveCount(n)) {
-			// Animation of the move
 
+		if (baseMoveIndex >= MoveCount(n))
+        {
+			Random.state = previousRandomState;
+			return (null, null);
+        }
+		else
+		{
 			Transform block = Blocks.Find(bi + "");
 			BoxCollider2D blockBox = block.GetComponent<BoxCollider2D>();
 
@@ -187,15 +295,14 @@ public class HanoiAnimationControlAsset : PlayableAsset
 			if (temp == MiddleIndex)
 				extraMiddleY = Mathf.Max(0, (towers[MiddleIndex].Count + 0.5f) * Height - maxY);
 
-			System.Func<float, Vector3> baseCurve = t => Vec.Lerp3(
+            Curve baseCurve = Vec.CubicCurve(
 				posFrom,
 				posFrom + Vector3.up * (BaseLiftLength + UpperBlockPullK * (maxY - posFrom.y) + ExtraMiddlePullK * extraMiddleY),
 				posTo + Vector3.up * (BaseLiftLength + UpperBlockPullK * (maxY - posTo.y) + ExtraMiddlePullK * extraMiddleY),
-				posTo,
-				t
+				posTo
 			);
 
-			System.Func<float, Vector3> p;
+            Curve p;
 
 			bool barrierActivated = temp == MiddleIndex && extraMiddleY > 0;
 			if (UseBarrier && barrierActivated)
@@ -213,7 +320,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
 				//p = t => barrierTransform(p(t)); Doesn't capture 'p', executes recursively - not what we want
 				p = t => barrierTransform(baseCurve(t));
 
-				if (ShowSpline)
+				if (drawDebug && ShowSpline)
 					Vec.DrawDebugCurve(baseCurve, InterpolationSegments, Color.cyan);
             }
             else
@@ -221,10 +328,10 @@ public class HanoiAnimationControlAsset : PlayableAsset
 				p = baseCurve;
             }
 
-			if (ShowSpline)
+			if (drawDebug && ShowSpline)
 				Vec.DrawDebugCurve(p, InterpolationSegments, Color.red);
 
-			if (ShowBarrier)
+			if (drawDebug && ShowBarrier)
 			{
 				Debug.DrawLine(
 					Barrier.position - Vector3.right * BarrierDebugWidth,
@@ -234,13 +341,14 @@ public class HanoiAnimationControlAsset : PlayableAsset
 					Color.green);
 			}
 
+			//Transform block = Blocks.Find(bi + "");
+			//block.localPosition = p((float)inMovePos);
+			//UpdateUI(baseMoveIndex);
 
-			block.localPosition = p((float)inMovePos);
-			UpdateUI(baseMoveIndex);
-        }
-
-		Random.state = previousRandomState;
-    }
+			Random.state = previousRandomState;
+			return (block, p);
+		}
+	}
 
 	void UpdateUI(int moveIndex)
     {
@@ -249,10 +357,14 @@ public class HanoiAnimationControlAsset : PlayableAsset
 
 	int MoveCount(int n)
     {
-		int count = 0;
-		for (int i = 1; i <= n; i++)
-			count = 2 * count + 1;
-		return count;
+		return p2[n] - 1;
+	}
+
+	int hash(int blockIndex, int movesMade)
+	{
+		return Seed
+			+ blockIndex * 1000003 // Primes (at least: co-primes) - to minimize intersections
+			+ movesMade * 1009;
 	}
 
 	// Returns (Tower State, nextBlockToMove, nextMoveFrom, nextMoveTo)
@@ -265,11 +377,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
 			new List<int>(),
 		};
 
-		//int stepi = 0;
-		//for (int i = 1; i <= n; i++)
-		//	stepi = 2 * stepi + 1;
-		int stepi = p2[n] - 1;
-
+		int stepi = MoveCount(n);
 		bool completed = moveIndex == stepi;
 
 		// Moving stacks of blocks of sizes from 'n' down to '1'
