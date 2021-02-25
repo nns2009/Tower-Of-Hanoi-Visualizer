@@ -15,6 +15,10 @@ public class HanoiAnimationControlBehaviour : PlayableBehaviour
 		double lastFrameTime = playable.GetDuration() - frameTime;
 		double rate = playable.GetTime() / lastFrameTime;
 
+		//Debug.Log($"{info.frameId}");
+		//Debug.Log($"Playable. GetPlayState(): {playable.GetPlayState()}, GetSpeed(): {playable.GetSpeed()}, GetTraversalMode(): {playable.GetTraversalMode()}");
+		//Debug.Log($"FrameData. EffectivePlayState: {info.effectivePlayState}, effective speed: {info.effectiveSpeed}, evaluation type: {info.evaluationType}");
+
 		//Debug.Log("Process Frame");
 		//Debug.Log($"time: {playable.GetTime()}, duration: {playable.GetDuration()}, rate: {rate}");
 		SetRate(rate);

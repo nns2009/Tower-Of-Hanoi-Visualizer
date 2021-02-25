@@ -37,6 +37,12 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	public string CountPrefix;
 	public string CountSuffix;
 
+	[Header("Sounds")]
+	public bool useLandingSound = false;
+	public AudioClip landingSound;
+	public ExposedReference<AudioSource> exLandingAudioSource;
+	public float landingSoundVolume = 1;
+
 	[Header("References")]
 	public ExposedReference<Manager2> manager;
 
@@ -60,6 +66,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
 
 
 	[Header("Computed")]
+	private AudioSource landingAudioSource;
 	private Manager2 trueManager;
 	private Transform Barrier;
 	private Transform Blocks;
@@ -76,6 +83,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
 		var playable = ScriptPlayable<HanoiAnimationControlBehaviour>.Create(graph);
 
 		var resolver = graph.GetResolver();
+		landingAudioSource = exLandingAudioSource.Resolve(resolver);
 		trueManager = manager.Resolve(resolver);
 
 		Barrier = trueManager.transform.Find("Barrier");
@@ -117,6 +125,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
 			timesSums[i + 1] = timesSums[i] + times[i];
 
 		float oneDelayFraction = DelayFraction / delayCount;
+		int lastBaseMoveIndex = 0;
 		void setRate(double t)
         {
 			Rate = t; // Debug output
@@ -167,6 +176,12 @@ public class HanoiAnimationControlAsset : PlayableAsset
 					: -1;
 
 			SetMove(n, baseMoveIndex, inMovePos);
+			if (useLandingSound && baseMoveIndex == lastBaseMoveIndex + 1)
+            {
+				landingAudioSource.Play();
+				//AudioSource.PlayClipAtPoint(landingSound, Camera.main.transform.position, landingSoundVolume);
+            }
+			lastBaseMoveIndex = baseMoveIndex;
         }
 
 		var b = playable.GetBehaviour();

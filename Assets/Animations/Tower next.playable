@@ -831,16 +831,22 @@ MonoBehaviour:
   BarrierK: 8
   CountPrefix: 'Move count: '
   CountSuffix: 
+  useLandingSound: 1
+  landingSound: {fileID: 8300000, guid: a5c182d5adbf28548ba8ad8526350543, type: 3}
+  exLandingAudioSource:
+    exposedName: cfdf068d5c06adc4f97ae459fa7d5057
+    defaultValue: {fileID: 0}
+  landingSoundVolume: 1
   manager:
     exposedName: b310434a4f65dce4e913bef4424f682d
     defaultValue: {fileID: 0}
   ShowSpline: 1
   ShowBarrier: 1
   BarrierDebugWidth: 9
-  Rate: 0.7792163927043458
-  BaseMove: 198
-  InMove: 0.9025600079314468
-  CurveTimeRatio: 3.2922041
+  Rate: 0.3270263017996797
+  BaseMove: 84
+  InMove: 0.43498030246050606
+  CurveTimeRatio: 3.5181313
 --- !u!114 &4940398349882151031
 MonoBehaviour:
   m_ObjectHideFlags: 1
