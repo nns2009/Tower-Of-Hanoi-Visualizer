@@ -16,7 +16,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
 	[Range(0, 1)]
 	public float UpperBlockPullK;
 	[Range(0, 3)]
-	public float ExtraMiddlePullK;
+	public float ExtraMiddlePullK, ExtraAverageMiddlePullK;
 
 	[Header("Animation")]
 	public int Seed = 0;
@@ -108,7 +108,7 @@ public class HanoiAnimationControlAsset : PlayableAsset
 			var (_, p) = PlaceTowersAndGetCurve(n, i, false);
 
 			// Get it's length
-			float length = Vec.CurveLength(p, InterpolationSegments); // Test length: Mathf.Log(i+2, 2);
+			float length = Curves.Length(p, InterpolationSegments); // Test length: Mathf.Log(i+2, 2);
 
 			// Apply LengthPower to length to get appropriate ratio
 			times[i] = Mathf.Pow(length, LengthPower);
@@ -187,6 +187,11 @@ public class HanoiAnimationControlAsset : PlayableAsset
 		var b = playable.GetBehaviour();
 		b.FrameRate = 60;
 		b.SetRate = setRate;
+
+		// Necessary to make sure animation starts from the initial state
+		// and not from the SetMove(n, MoveCount(n)-1, 0) state
+		// (which is the last state evaluated in the times-calculation loop)
+		SetMove(n, 0, 0);
 
 		return playable;
 	}
@@ -306,14 +311,24 @@ public class HanoiAnimationControlAsset : PlayableAsset
 			// var posTo = new Vector3(cols[to].localPosition.x, (towers[to].Count + 0.5f) * Height);
 
 			float maxY = Mathf.Max(posFrom.y, posTo.y);
+			float averageY = (posFrom.y + posTo.y) / 2;
 			float extraMiddleY = 0;
+			// extraMiddleY is not enough when block moves high-to-low (or low-to-high)
+			// and the middle tower is approximately as tall as the "high" one
+			// that's why extraAboveAverageY was introduced
+			float extraAboveAveragyY = 0;
 			if (temp == MiddleIndex)
-				extraMiddleY = Mathf.Max(0, (towers[MiddleIndex].Count + 0.5f) * Height - maxY);
+			{
+				float middlePassY = (towers[MiddleIndex].Count + 0.5f) * Height;
+				extraMiddleY = Mathf.Max(0, middlePassY - maxY);
+				extraAboveAveragyY = Mathf.Max(0, middlePassY - averageY) - extraMiddleY;
+			}
 
-            Curve baseCurve = Vec.CubicCurve(
+			float sharedExtraY = BaseLiftLength + ExtraMiddlePullK * extraMiddleY + ExtraAverageMiddlePullK * extraAboveAveragyY;
+			Curve baseCurve = Curves.Cubic(
 				posFrom,
-				posFrom + Vector3.up * (BaseLiftLength + UpperBlockPullK * (maxY - posFrom.y) + ExtraMiddlePullK * extraMiddleY),
-				posTo + Vector3.up * (BaseLiftLength + UpperBlockPullK * (maxY - posTo.y) + ExtraMiddlePullK * extraMiddleY),
+				posFrom + Vector3.up * (sharedExtraY + UpperBlockPullK * (maxY - posFrom.y)),
+				posTo + Vector3.up * (sharedExtraY + UpperBlockPullK * (maxY - posTo.y)),
 				posTo
 			);
 
@@ -336,7 +351,9 @@ public class HanoiAnimationControlAsset : PlayableAsset
 				p = t => barrierTransform(baseCurve(t));
 
 				if (drawDebug && ShowSpline)
-					Vec.DrawDebugCurve(baseCurve, InterpolationSegments, Color.cyan);
+					Curves.DrawDebug(
+						Curves.Translate(baseCurve, trueManager.transform.position),
+						InterpolationSegments, Color.cyan);
             }
             else
             {
@@ -344,7 +361,9 @@ public class HanoiAnimationControlAsset : PlayableAsset
             }
 
 			if (drawDebug && ShowSpline)
-				Vec.DrawDebugCurve(p, InterpolationSegments, Color.red);
+				Curves.DrawDebug(
+					Curves.Translate(p, trueManager.transform.position),
+					InterpolationSegments, Color.red);
 
 			if (drawDebug && ShowBarrier)
 			{

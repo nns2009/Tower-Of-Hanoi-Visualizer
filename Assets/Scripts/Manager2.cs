@@ -21,6 +21,7 @@ public class Manager2 : MonoBehaviour
 	[Header("Tower Visuals")]
 	public Sprite sprite;
 	public Material material;
+	public bool copyMaterialForEachSprite; // Necessary to prevent batching and access correct object position in shader graph
 	public SpriteDrawMode spriteDrawMode;
 	[Range(0, 1)]
 	public float Saturation, OuterBrightness, MinHue, MaxHue;
@@ -99,7 +100,7 @@ public class Manager2 : MonoBehaviour
 				var sr = goOuter.AddComponent<SpriteRenderer>();
 				sr.sprite = sprite;
 				if (material != null)
-					sr.material = material;
+					sr.material = copyMaterialForEachSprite ? new Material(material) : material;
 				sr.drawMode = spriteDrawMode;
 				sr.size = box.size;
 				sr.color = Color.HSVToRGB(Mathf.Lerp(MinHue, MaxHue, k), Saturation, OuterBrightness);
@@ -120,7 +121,7 @@ public class Manager2 : MonoBehaviour
 				var sr2 = goInner.AddComponent<SpriteRenderer>();
 				sr2.sprite = sprite;
 				if (material != null)
-					sr2.material = material;
+					sr2.material = copyMaterialForEachSprite ? new Material(material) : material;
 				sr2.drawMode = spriteDrawMode;
 				sr2.size = new Vector2(
 					(box.size.x - 2 * InnerSpriteMargin.x) * InnerSpriteScaling.x,
