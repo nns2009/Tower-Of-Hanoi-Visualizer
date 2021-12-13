@@ -13,7 +13,7 @@ public class Manager2 : MonoBehaviour
 	[Range(2, 20)]
 	public int count;
 	public float MinWidth, MaxWidth;
-	[Range(2, 20)]
+	[Range(2, 36)]
 	public float TotalHeight;
 	[Range(0, 8)]
 	public float TowerSpacing;
@@ -87,6 +87,7 @@ public class Manager2 : MonoBehaviour
 			var go = new GameObject(i + "");
 			go.transform.parent = Blocks;
 			go.transform.localPosition = new Vector3(Left.localPosition.x, (count - 1 - i + 0.5f) * Height);
+			go.transform.localRotation = Quaternion.identity;
 			//go.transform.localScale = new Vector3(Mathf.Lerp(MinWidth, MaxWidth, k), Height);
 
 			var box = go.AddComponent<BoxCollider2D>();
@@ -96,6 +97,7 @@ public class Manager2 : MonoBehaviour
 				var goOuter = new GameObject("Outer");
 				goOuter.transform.parent = go.transform;
 				goOuter.transform.localPosition = Vector3.zero;
+				goOuter.transform.localRotation = Quaternion.identity;
 
 				var sr = goOuter.AddComponent<SpriteRenderer>();
 				sr.sprite = sprite;
@@ -112,6 +114,7 @@ public class Manager2 : MonoBehaviour
 				var goInner = new GameObject("Inner");
 				goInner.transform.parent = go.transform;
 				goInner.transform.localPosition = Vector3.zero;
+				goInner.transform.localRotation = Quaternion.identity;
 
 				//goInner.transform.localScale = new Vector3(
 				//	(box.size.x - 2 * InnerSpriteMargin.x) * InnerSpriteScaling.x,
